@@ -1,6 +1,5 @@
 class SugorokuCardGame {
     constructor() {
-        this.cards = [];
         this.isCardSelected = false;
         this.currentBGM = null;
         this.audioElements = {};
@@ -12,7 +11,7 @@ class SugorokuCardGame {
     init() {
         // DOM要素の取得
         this.cardsContainer = document.getElementById('cards-container');
-        this.resultArea = document.getElementById('result-area');
+        this.resultOverlay = document.getElementById('result-overlay');
         this.resultImage = document.getElementById('result-image');
         this.shuffleBtn = document.getElementById('shuffle-btn');
         this.particlesContainer = document.getElementById('particles');
@@ -20,11 +19,8 @@ class SugorokuCardGame {
         // 音声要素の初期化
         this.initAudio();
         
-        // カードの初期化とイベントリスナー設定
-        this.refreshCardsAndEvents();
-        
-        // シャッフルとBGMボタンのイベントリスナー設定
-        this.bindStaticEvents();
+        // イベントリスナーの設定（イベント委譲を使用）
+        this.bindEventsWithDelegation();
         
         // 初期状態の設定
         this.shuffle();
@@ -44,7 +40,6 @@ class SugorokuCardGame {
             const audio = document.getElementById(id);
             if (audio) {
                 this.audioElements[id] = audio;
-                // 音声読み込みエラーのハンドリング
                 audio.addEventListener('error', () => {
                     console.warn(`音声ファイル ${id} の読み込みに失敗しました`);
                 });
@@ -52,49 +47,44 @@ class SugorokuCardGame {
         });
     }
     
-    // カード要素の再取得とイベントリスナーの再設定（重要な修正点）
-    refreshCardsAndEvents() {
-        // 既存のイベントリスナーをクリア
-        if (this.cards && this.cards.length > 0) {
-            this.cards.forEach(card => {
-                if (card && card.cloneNode) {
-                    const newCard = card.cloneNode(true);
-                    card.parentNode.replaceChild(newCard, card);
-                }
-            });
-        }
-        
-        // カード要素を再取得
-        this.cards = Array.from(document.querySelectorAll('.card'));
-        
-        // カードクリックイベントを設定
-        this.cards.forEach(card => {
-            card.addEventListener('click', (e) => this.onCardClick(e));
-            
-            // タッチイベント対応（スマホ用）
-            card.addEventListener('touchstart', (e) => {
-                e.preventDefault();
-                if (!this.isCardSelected) {
-                    card.style.transform = 'scale(1.1)';
-                }
-            });
-            
-            card.addEventListener('touchend', (e) => {
-                e.preventDefault();
-                card.style.transform = '';
-            });
-            
-            card.addEventListener('touchcancel', (e) => {
-                e.preventDefault();
-                card.style.transform = '';
-            });
+    // イベント委譲を使用したイベントリスナー設定
+    bindEventsWithDelegation() {
+        // カードクリック：イベント委譲を使用
+        this.cardsContainer.addEventListener('click', (e) => {
+            const card = e.target.closest('.card');
+            if (card && !this.isCardSelected) {
+                this.onCardClick(card);
+            }
         });
         
-        console.log(`カードイベントリスナー再登録完了: ${this.cards.length}枚`);
-    }
-    
-    // 静的なボタンのイベントリスナー設定
-    bindStaticEvents() {
+        // カードタッチイベント：イベント委譲を使用
+        this.cardsContainer.addEventListener('touchstart', (e) => {
+            const card = e.target.closest('.card');
+            if (card && !this.isCardSelected) {
+                e.preventDefault();
+                card.style.transform = 'scale(1.1)';
+            }
+        });
+        
+        this.cardsContainer.addEventListener('touchend', (e) => {
+            const card = e.target.closest('.card');
+            if (card) {
+                e.preventDefault();
+                card.style.transform = '';
+                if (!this.isCardSelected) {
+                    this.onCardClick(card);
+                }
+            }
+        });
+        
+        this.cardsContainer.addEventListener('touchcancel', (e) => {
+            const card = e.target.closest('.card');
+            if (card) {
+                e.preventDefault();
+                card.style.transform = '';
+            }
+        });
+        
         // シャッフルボタン
         this.shuffleBtn.addEventListener('click', () => this.shuffle());
         
@@ -102,6 +92,13 @@ class SugorokuCardGame {
         document.getElementById('bgm1').addEventListener('click', () => this.playBGM('bgm1-audio'));
         document.getElementById('bgm2').addEventListener('click', () => this.playBGM('bgm2-audio'));
         document.getElementById('bgm-stop').addEventListener('click', () => this.stopBGM());
+        
+        // オーバーレイクリック（背景クリックで閉じる）
+        this.resultOverlay.addEventListener('click', (e) => {
+            if (e.target === this.resultOverlay) {
+                this.shuffle();
+            }
+        });
     }
     
     // 配列をシャッフルするヘルパー関数
@@ -115,10 +112,7 @@ class SugorokuCardGame {
     }
     
     // カードクリック処理（2秒演出付き）
-    async onCardClick(e) {
-        if (this.isCardSelected) return;
-        
-        const card = e.currentTarget;
+    async onCardClick(card) {
         const cardNumber = card.dataset.number;
         
         console.log(`カード選択: ${cardNumber}`);
@@ -140,7 +134,7 @@ class SugorokuCardGame {
             card.classList.add('flipped');
         }, 2000);
         
-        // 結果表示
+        // 結果表示（中央オーバーレイ）
         setTimeout(() => {
             this.showResult(cardNumber);
             this.playSound('fanfare-audio');
@@ -222,28 +216,36 @@ class SugorokuCardGame {
         });
     }
     
-    // 結果表示
+    // 結果表示（中央オーバーレイ）
     showResult(number) {
         this.resultImage.src = `images/${number}.png`;
         this.resultImage.alt = number;
         
-        this.resultArea.classList.remove('hidden');
-        this.resultArea.classList.add('fade-in');
+        // オーバーレイを表示
+        this.resultOverlay.classList.remove('hidden');
+        this.resultOverlay.classList.add('fade-in');
         
-        // カードグリッドを隠す
-        this.cardsContainer.style.opacity = '0.3';
+        // カードグリッドを少し暗くする
+        this.cardsContainer.style.opacity = '0.2';
         this.cardsContainer.style.pointerEvents = 'none';
     }
     
-    // シャッフル処理（修正版）
+    // シャッフル処理
     shuffle() {
         this.playSound('shuffle-audio');
+        
+        // オーバーレイを隠す
+        this.resultOverlay.classList.add('hidden');
+        this.resultOverlay.classList.remove('fade-in');
         
         // カード番号をシャッフル
         const shuffledNumbers = this.shuffleArray(this.cardNumbers);
         
+        // カード要素を取得
+        const cards = Array.from(this.cardsContainer.querySelectorAll('.card'));
+        
         // 全カードをリセット
-        this.cards.forEach((card, index) => {
+        cards.forEach((card, index) => {
             setTimeout(() => {
                 // エフェクトクラスもクリア
                 this.clearCardEffects(card);
@@ -263,33 +265,21 @@ class SugorokuCardGame {
                 
                 setTimeout(() => {
                     card.classList.remove('shuffling');
-                    
-                    // 最後のカードの処理が終わったらイベントリスナーを再設定
-                    if (index === this.cards.length - 1) {
-                        setTimeout(() => {
-                            this.refreshCardsAndEvents();
-                            console.log('シャッフル完了 - イベントリスナー再登録済み');
-                        }, 100);
-                    }
                 }, 800);
             }, index * 100);
         });
-        
-        // 結果エリアを隠す
-        this.resultArea.classList.add('hidden');
-        this.resultArea.classList.remove('fade-in');
         
         // カードグリッドを復活
         setTimeout(() => {
             this.cardsContainer.style.opacity = '1';
             this.cardsContainer.style.pointerEvents = 'auto';
             this.isCardSelected = false;
-        }, 1200); // 少し長めに設定してイベントリスナーの再登録を確実にする
+            console.log('シャッフル完了');
+        }, 1200);
     }
     
     // BGM再生
     playBGM(audioId) {
-        // 現在のBGMを停止
         this.stopBGM();
         
         const audio = this.audioElements[audioId];
@@ -362,7 +352,6 @@ class SugorokuCardGame {
                 
                 this.particlesContainer.appendChild(particle);
                 
-                // パーティクルを自動削除
                 setTimeout(() => {
                     if (particle.parentNode) {
                         particle.parentNode.removeChild(particle);
@@ -375,30 +364,24 @@ class SugorokuCardGame {
 
 // ページ読み込み完了時にゲーム開始
 document.addEventListener('DOMContentLoaded', () => {
-    // ユーザーインタラクション後に音声を有効化（ブラウザポリシー対応）
     const enableAudio = () => {
         new SugorokuCardGame();
         document.removeEventListener('touchstart', enableAudio);
         document.removeEventListener('click', enableAudio);
     };
     
-    // モバイルブラウザ対応
     document.addEventListener('touchstart', enableAudio, { once: true });
     document.addEventListener('click', enableAudio, { once: true });
     
-    // PC環境では直接初期化
     if (!('ontouchstart' in window)) {
         enableAudio();
     }
 });
 
-// ビューポート設定の動的調整（iOS Safari対応）
+// ビューポート設定の動的調整
 function adjustViewport() {
-    const viewport = document.querySelector('meta[name=viewport]');
-    if (viewport) {
-        const vh = window.innerHeight * 0.01;
-        document.documentElement.style.setProperty('--vh', `${vh}px`);
-    }
+    const vh = window.innerHeight * 0.01;
+    document.documentElement.style.setProperty('--vh', `${vh}px`);
 }
 
 window.addEventListener('resize', adjustViewport);
@@ -406,12 +389,3 @@ window.addEventListener('orientationchange', () => {
     setTimeout(adjustViewport, 100);
 });
 adjustViewport();
-
-// PWA対応（オフライン使用可能）
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js')
-            .then(() => console.log('Service Worker 登録成功'))
-            .catch(() => console.log('Service Worker 登録失敗'));
-    });
-}
