@@ -20,11 +20,11 @@ class SugorokuCardGame {
         // 音声要素の初期化
         this.initAudio();
         
-        // カードの初期化
-        this.initCards();
+        // カードの初期化とイベントリスナー設定
+        this.refreshCardsAndEvents();
         
-        // イベントリスナーの設定
-        this.bindEvents();
+        // シャッフルとBGMボタンのイベントリスナー設定
+        this.bindStaticEvents();
         
         // 初期状態の設定
         this.shuffle();
@@ -52,38 +52,26 @@ class SugorokuCardGame {
         });
     }
     
-    // カード初期化
-    initCards() {
-        this.cards = Array.from(document.querySelectorAll('.card'));
-    }
-    
-    // 配列をシャッフルするヘルパー関数
-    shuffleArray(array) {
-        const newArray = [...array];
-        for (let i = newArray.length - 1; i > 0; i--) {
-            const j = Math.floor(Math.random() * (i + 1));
-            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+    // カード要素の再取得とイベントリスナーの再設定（重要な修正点）
+    refreshCardsAndEvents() {
+        // 既存のイベントリスナーをクリア
+        if (this.cards && this.cards.length > 0) {
+            this.cards.forEach(card => {
+                if (card && card.cloneNode) {
+                    const newCard = card.cloneNode(true);
+                    card.parentNode.replaceChild(newCard, card);
+                }
+            });
         }
-        return newArray;
-    }
-    
-    // イベントリスナー設定
-    bindEvents() {
-        // カードクリックイベント
+        
+        // カード要素を再取得
+        this.cards = Array.from(document.querySelectorAll('.card'));
+        
+        // カードクリックイベントを設定
         this.cards.forEach(card => {
             card.addEventListener('click', (e) => this.onCardClick(e));
-        });
-        
-        // シャッフルボタン
-        this.shuffleBtn.addEventListener('click', () => this.shuffle());
-        
-        // BGMボタン
-        document.getElementById('bgm1').addEventListener('click', () => this.playBGM('bgm1-audio'));
-        document.getElementById('bgm2').addEventListener('click', () => this.playBGM('bgm2-audio'));
-        document.getElementById('bgm-stop').addEventListener('click', () => this.stopBGM());
-        
-        // タッチイベント対応（スマホ用）
-        this.cards.forEach(card => {
+            
+            // タッチイベント対応（スマホ用）
             card.addEventListener('touchstart', (e) => {
                 e.preventDefault();
                 if (!this.isCardSelected) {
@@ -101,6 +89,29 @@ class SugorokuCardGame {
                 card.style.transform = '';
             });
         });
+        
+        console.log(`カードイベントリスナー再登録完了: ${this.cards.length}枚`);
+    }
+    
+    // 静的なボタンのイベントリスナー設定
+    bindStaticEvents() {
+        // シャッフルボタン
+        this.shuffleBtn.addEventListener('click', () => this.shuffle());
+        
+        // BGMボタン
+        document.getElementById('bgm1').addEventListener('click', () => this.playBGM('bgm1-audio'));
+        document.getElementById('bgm2').addEventListener('click', () => this.playBGM('bgm2-audio'));
+        document.getElementById('bgm-stop').addEventListener('click', () => this.stopBGM());
+    }
+    
+    // 配列をシャッフルするヘルパー関数
+    shuffleArray(array) {
+        const newArray = [...array];
+        for (let i = newArray.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [newArray[i], newArray[j]] = [newArray[j], newArray[i]];
+        }
+        return newArray;
     }
     
     // カードクリック処理（2秒演出付き）
@@ -109,6 +120,8 @@ class SugorokuCardGame {
         
         const card = e.currentTarget;
         const cardNumber = card.dataset.number;
+        
+        console.log(`カード選択: ${cardNumber}`);
         
         this.isCardSelected = true;
         
@@ -222,7 +235,7 @@ class SugorokuCardGame {
         this.cardsContainer.style.pointerEvents = 'none';
     }
     
-    // シャッフル処理（カード番号の位置もランダムに）
+    // シャッフル処理（修正版）
     shuffle() {
         this.playSound('shuffle-audio');
         
@@ -250,6 +263,14 @@ class SugorokuCardGame {
                 
                 setTimeout(() => {
                     card.classList.remove('shuffling');
+                    
+                    // 最後のカードの処理が終わったらイベントリスナーを再設定
+                    if (index === this.cards.length - 1) {
+                        setTimeout(() => {
+                            this.refreshCardsAndEvents();
+                            console.log('シャッフル完了 - イベントリスナー再登録済み');
+                        }, 100);
+                    }
                 }, 800);
             }, index * 100);
         });
@@ -263,7 +284,7 @@ class SugorokuCardGame {
             this.cardsContainer.style.opacity = '1';
             this.cardsContainer.style.pointerEvents = 'auto';
             this.isCardSelected = false;
-        }, 1000);
+        }, 1200); // 少し長めに設定してイベントリスナーの再登録を確実にする
     }
     
     // BGM再生
