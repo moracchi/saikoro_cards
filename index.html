@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>けんちゃんのすごろくカード</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- パーティクル効果用コンテナ -->
+    <div id="particles"></div>
+    
+    <!-- メインコンテナ -->
+    <div class="container">
+        <!-- タイトル -->
+        <header>
+            <h1 class="title">けんちゃんの<br>すごろくカード</h1>
+        </header>
+
+        <!-- BGMコントロール -->
+        <div class="bgm-controls">
+            <button id="bgm1" class="bgm-btn">♪1</button>
+            <button id="bgm2" class="bgm-btn">♪2</button>
+            <button id="bgm-stop" class="bgm-btn stop">停止</button>
+        </div>
+
+        <!-- カードエリア -->
+        <div class="card-area">
+            <div id="cards-container" class="cards-grid">
+                <div class="card" data-number="1">
+                    <div class="card-inner">
+                        <div class="card-back"></div>
+                        <div class="card-front">
+                            <img src="images/1.png" alt="1" class="card-image">
+                        </div>
+                    </div>
+                </div>
+                <div class="card" data-number="2">
+                    <div class="card-inner">
+                        <div class="card-back"></div>
+                        <div class="card-front">
+                            <img src="images/2.png" alt="2" class="card-image">
+                        </div>
+                    </div>
+                </div>
+                <div class="card" data-number="3">
+                    <div class="card-inner">
+                        <div class="card-back"></div>
+                        <div class="card-front">
+                            <img src="images/3.png" alt="3" class="card-image">
+                        </div>
+                    </div>
+                </div>
+                <div class="card" data-number="4">
+                    <div class="card-inner">
+                        <div class="card-back"></div>
+                        <div class="card-front">
+                            <img src="images/4.png" alt="4" class="card-image">
+                        </div>
+                    </div>
+                </div>
+                <div class="card" data-number="5">
+                    <div class="card-inner">
+                        <div class="card-back"></div>
+                        <div class="card-front">
+                            <img src="images/5.png" alt="5" class="card-image">
+                        </div>
+                    </div>
+                </div>
+                <div class="card" data-number="6">
+                    <div class="card-inner">
+                        <div class="card-back"></div>
+                        <div class="card-front">
+                            <img src="images/6.png" alt="6" class="card-image">
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 結果表示エリア -->
+        <div id="result-area" class="result-area hidden">
+            <h2 class="result-title">結果発表！</h2>
+            <div id="result-card" class="result-card">
+                <img id="result-image" src="" alt="" class="result-image">
+            </div>
+        </div>
+
+        <!-- シャッフルボタン -->
+        <div class="controls">
+            <button id="shuffle-btn" class="shuffle-btn">🎭 シャッフル</button>
+        </div>
+    </div>
+
+    <!-- 音声要素 -->
+    <audio id="bgm1-audio" src="audio/music1.mp3" loop preload="auto"></audio>
+    <audio id="bgm2-audio" src="audio/music2.mp3" loop preload="auto"></audio>
+    <audio id="card-flip-audio" src="audio/card-flip.mp3" preload="auto"></audio>
+    <audio id="drum-roll-audio" src="audio/drum-roll.mp3" preload="auto"></audio>
+    <audio id="fanfare-audio" src="audio/fanfare.mp3" preload="auto"></audio>
+    <audio id="shuffle-audio" src="audio/shuffle.mp3" preload="auto"></audio>
+
+    <script src="script.js"></script>
+</body>
+</html>
